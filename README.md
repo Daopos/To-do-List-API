@@ -1,6 +1,6 @@
 # To-do-List-API
 
-# 📝 To-Do List API
+# 📝 A Simple To-Do List API
 
 A secure and extensible RESTful API for managing tasks and subtasks, built with **Node.js**, **Express**, and **Sequelize**.
 
