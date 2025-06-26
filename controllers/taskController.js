@@ -96,6 +96,15 @@ const deleteTaskById = async (req, res) => {
       res.status(404).json({ message: "No task found" });
     }
 
+    if (task.files) {
+      const fs = require("fs");
+      const path = require("path");
+      const oldFilePath = path.join(__dirname, "..", "public", task.files);
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
+    }
+
     await task.destroy();
 
     res.status(200).json({ message: "Task successfully deleted" });
@@ -188,20 +197,52 @@ const getTasksByUser = async (req, res) => {
 const editTaskById = async (req, res) => {
   const { id } = req.params;
 
-  const { status, due_date, details, files } = req.body;
+  const { status, due_date, details, deleteImage } = req.body;
 
   try {
     const task = await Task.findByPk(id, {
       include: { model: Subtask, as: "subtasks" },
     });
+
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    await task.update({ status, due_date, details, files });
+    let filePath = task.files;
+
+    if (req.file) {
+      if (task.files) {
+        const fs = require("fs");
+        const path = require("path");
+        const oldFilePath = path.join(__dirname, "..", "public", task.files);
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+      filePath = `/uploads/${req.file.filename}`;
+    } else if (deleteImage === "true") {
+      if (task.files) {
+        const fs = require("fs");
+        const path = require("path");
+        const oldFilePath = path.join(__dirname, "..", "public", task.files);
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+      filePath = null;
+    }
+    const completed = task.status === "Complete";
+    const completed_date = completed ? new Date() : null;
+    await task.update({
+      status,
+      due_date,
+      details,
+      files: filePath,
+      completed_date,
+    });
 
     let subtasks = [];
 
     if (req.body.subtasks) {
-      subtasks = JSON.parse(req.body.subtasks); // parse JSON string
+      subtasks = JSON.parse(req.body.subtasks);
     }
     const currentIds = subtasks.filter((s) => s.id).map((s) => s.id);
 
@@ -214,9 +255,15 @@ const editTaskById = async (req, res) => {
 
     if (Array.isArray(subtasks)) {
       for (const subtask of subtasks) {
+        const isDone = subtask.status === "Done";
+        const completed_date = isDone ? new Date() : null;
         if (subtask.id) {
           await Subtask.update(
-            { title: subtask.title, status: subtask.status },
+            {
+              title: subtask.title,
+              status: subtask.status,
+              completed_date: completed_date,
+            },
             { where: { id: subtask.id, task_id: task.id } }
           );
         } else {
