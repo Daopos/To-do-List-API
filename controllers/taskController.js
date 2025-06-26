@@ -139,8 +139,19 @@ const getTasksByUser = async (req, res) => {
 
   const where = { user_id: userId };
 
-  if (status) where.status = status;
-  if (priority) where.priority = priority;
+  if (status) {
+    const statusArray = Array.isArray(status)
+      ? status
+      : status.split(",").map((s) => s.trim());
+    where.status = { [Op.in]: statusArray };
+  }
+
+  if (priority) {
+    const priorityArray = Array.isArray(priority)
+      ? priority
+      : priority.split(",").map((p) => p.trim());
+    where.priority = { [Op.in]: priorityArray };
+  }
 
   const direction = order?.toUpperCase() === "DESC" ? "DESC" : "ASC";
 
@@ -230,7 +241,7 @@ const editTaskById = async (req, res) => {
       filePath = null;
     }
     const completed = task.status === "Complete";
-    const completed_date = completed ? new Date() : null;
+    const completed_date = completed ? new Date() : "";
     await task.update({
       status,
       due_date,
@@ -256,7 +267,7 @@ const editTaskById = async (req, res) => {
     if (Array.isArray(subtasks)) {
       for (const subtask of subtasks) {
         const isDone = subtask.status === "Done";
-        const completed_date = isDone ? new Date() : null;
+        const completed_date = isDone ? new Date() : "";
         if (subtask.id) {
           await Subtask.update(
             {

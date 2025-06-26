@@ -10,7 +10,7 @@ const authorizeTaskOwner = async (req, res, next) => {
       return res.status(404).json({ message: "Task not found." });
     }
 
-    if (task.userId !== req.userId) {
+    if (task.user_id !== req.userId) {
       return res
         .status(403)
         .json({ message: "You are not allowed to access this task." });
@@ -23,3 +23,5 @@ const authorizeTaskOwner = async (req, res, next) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+module.exports = authorizeTaskOwner;

@@ -1,7 +1,7 @@
 require("dotenv").config();
-const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const { User } = require("../db/models/index");
+const generateToken = require("../util/generateToken");
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
@@ -27,17 +27,17 @@ const facebookAuth = async (req, res) => {
     );
 
     const [user, created] = await User.findOrCreate({
-      where: { provider_id: profile.id },
+      where: { provider_id: profile.id, provider: "facebook" },
       defaults: {
         provider: "facebook",
       },
     });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const token = generateToken(user.id);
 
-    res.redirect(`${FRONTEND_URL}/third_parties_auth?token=${token}`);
+    res.redirect(
+      `${FRONTEND_URL}/third_parties_auth?token=${token}&username=${profile.name}`
+    );
   } catch (error) {
     console.error("Error:", error.response);
   }

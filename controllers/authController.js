@@ -1,8 +1,6 @@
 const { User, Task } = require("../db/models/index");
-const user = require("../db/models/user");
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-require("dotenv").config();
+const generateToken = require("../util/generateToken");
 
 const userSignup = async (req, res, next) => {
   try {
@@ -13,11 +11,10 @@ const userSignup = async (req, res, next) => {
       username: body.username,
       password: body.password,
     });
-    const token = jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
 
-    res.status(201).json({ token });
+    const token = generateToken(newUser.id);
+
+    res.status(201).json({ token: token, username: newUser.username });
   } catch (err) {
     res.status(500).json({
       message: err,
@@ -35,11 +32,9 @@ const userLogin = async (req, res, next) => {
       res.status(404).json({ message: "Incorrect username or password" });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const token = generateToken(user.id);
 
-    res.status(200).json({ token });
+    res.status(200).json({ token: token, username: user.username });
   } catch (err) {
     res.status(500).json({ message: err });
   }

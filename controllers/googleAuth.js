@@ -1,7 +1,7 @@
 require("dotenv").config();
-const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const { User } = require("../db/models/index");
+const generateToken = require("../util/generateToken");
 
 const CLIENT_ID = process.env.GOOGLE_APP_ID;
 const CLIENT_SECRET = process.env.GOOGLE_APP_SECRET;
@@ -32,20 +32,25 @@ const googleSignup = async (req, res) => {
     );
 
     const [user, created] = await User.findOrCreate({
-      where: { provider_id: profile.id },
+      where: { provider_id: profile.id, provider: "google" },
       defaults: {
         provider: "google",
       },
     });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const token = generateToken(user.id);
 
-    res.redirect(`${FRONTEND_URL}/third_parties_auth?token=${token}`);
+    res.redirect(
+      `${FRONTEND_URL}/third_parties_auth?token=${token}&username=${profile.name}`
+    );
   } catch (error) {
     console.error("Error:", error.response.data.error);
   }
 };
 
-module.exports = { googleSignup };
+const googlePage = (req, res) => {
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=profile email`;
+  res.redirect(url);
+};
+
+module.exports = { googleSignup, googlePage };
